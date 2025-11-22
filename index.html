@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Φυσική Quest: Από τους Πλανήτες στα Άτομα</title>
+    <!-- Φόρτωση Tailwind CSS για γρήγορο και responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117;
+            color: #e6e6e6;
+        }
+        .physics-card {
+            /* Στυλ κάρτας με gradient και σκιά */
+            background: linear-gradient(145deg, #18202d, #0f131a);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(255, 140, 0, 0.4); /* Πορτοκαλί-Χρυσό φως */
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #ff9900;
+        }
+        .physics-card:hover {
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 165, 0, 0.6);
+        }
+        .btn-option {
+            background-color: #ff9900; /* Χρυσό/Πορτοκαλί χρώμα για τις επιλογές */
+            color: #1f2937;
+            font-weight: 700;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .btn-option:hover {
+            background-color: #e68a00;
+            transform: translateY(-1px);
+        }
+        .btn-option:active {
+            background-color: #cc7a00;
+            transform: translateY(0);
+        }
+        .correct-answer {
+            color: #34d399; /* Πράσινο */
+        }
+        .incorrect-answer {
+            color: #f87171; /* Κόκκινο */
+        }
+        .dialogue-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid #ff9900;
+        }
+        #name-display {
+            color: #ff9900;
+            font-weight: 700;
+        }
+        #main-quiz-screen { display: none; }
+        #start-screen { display: flex; }
+    </style>
+</head>
+<body class="p-4 flex items-center justify-center min-h-screen">
+
+    <div id="game-container" class="w-full max-w-lg">
+        <header class="text-center mb-6">
+            <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-red-600 mb-2">
+                Φυσική Quest
+            </h1>
+            <p class="text-lg text-gray-400">Από τους Πλανήτες στα Άτομα</p>
+        </header>
+
+        <!-- 1. Αρχική Οθόνη Εισαγωγής Ονόματος -->
+        <div id="start-screen" class="physics-card rounded-xl p-6 md:p-8 flex-col space-y-6">
+            <h2 class="text-2xl font-bold text-center text-yellow-400">Είσοδος στην Αποστολή</h2>
+            <p class="text-center text-gray-300">Πριν ξεκινήσετε, καταγράψτε το όνομά σας ή το όνομα της ομάδας σας για την αναφορά επιτυχίας.</p>
+            
+            <input type="text" id="player-name-input" placeholder="Όνομα Μαθητή / Ομάδας" 
+                   class="w-full p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 border border-gray-600">
+            
+            <button id="start-button" class="w-full py-3 rounded-lg font-bold text-lg btn-option hover:bg-green-600 transition" onclick="initializeGame()">
+                Έναρξη Αποστολής &rarr;
+            </button>
+        </div>
+
+        <!-- 2. Κύρια Οθόνη Παιχνιδιού -->
+        <div id="main-quiz-screen" class="physics-card rounded-xl p-6 md:p-8">
+            <div id="scene-content" class="dialogue-box p-4 rounded-lg mb-6 text-base md:text-lg">
+                <p id="question-text" class="text-gray-200 font-medium"></p>
+                <div id="feedback-text" class="mt-3 font-semibold hidden"></div>
+            </div>
+
+            <!-- Επιλογές Απάντησης -->
+            <div id="options-container" class="space-y-4">
+                <!-- Τα κουμπιά θα εισαχθούν εδώ με JavaScript -->
+            </div>
+
+            <!-- Κουμπί Συνέχεια (εμφανίζεται μετά την απάντηση) -->
+            <button id="next-button" class="mt-6 w-full py-3 rounded-lg font-bold text-lg hidden btn-option" onclick="nextScene()">
+                Συνέχεια &rarr;
+            </button>
+
+             <!-- Κουμπί Επανεκκίνηση (εμφανίζεται στο τέλος) -->
+            <button id="restart-button" class="mt-6 w-full py-3 rounded-lg font-bold text-lg hidden bg-green-500 hover:bg-green-600 transition" onclick="resetGame()">
+                Νέα Αποστολή
+            </button>
+        </div>
+
+        <footer class="mt-6 text-center text-sm text-gray-500">
+            <p>Παίκτης: <span id="name-display">...</span></p>
+            <p>Σκηνή: <span id="scene-counter">1</span> / 10</p>
+        </footer>
+    </div>
+
+    <script>
+        // Global variables for game state and elements
+        let currentSceneIndex = 0;
+        let playerName = "";
+
+        const startScreen = document.getElementById('start-screen');
+        const mainQuizScreen = document.getElementById('main-quiz-screen');
+        const playerNameInput = document.getElementById('player-name-input');
+        const nameDisplay = document.getElementById('name-display');
+
+        const sceneCounter = document.getElementById('scene-counter');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackText = document.getElementById('feedback-text');
+        const nextButton = document.getElementById('next-button');
+        const restartButton = document.getElementById('restart-button');
+
+        // --- Δεδομένα Παιχνιδιού (Σκηνές) ---
+        const scenes = [
+            {
+                id: 1,
+                title: "1. Ευθύγραμμη Κίνηση: Η Φωτεινή Μπάλα",
+                text: "Ένας μαθητής εκτοξεύει μια μπάλα προς τα πάνω με αρχική ταχύτητα 20m/s. Αν αγνοήσουμε την αντίσταση του αέρα, ποια είναι η **ταχύτητα** της μπάλας στο υψηλότερο σημείο της τροχιάς της;",
+                options: [
+                    { text: "20 m/s, ίδια με την αρχική.", isCorrect: false, feedback: "Λάθος! Στο υψηλότερο σημείο, η μπάλα σταματά στιγμιαία πριν αρχίσει να πέφτει." },
+                    { text: "0 m/s.", isCorrect: true, feedback: "Σωστά! Στο ανώτερο σημείο της κατακόρυφης κίνησης, η ταχύτητα είναι μηδέν (0) στιγμιαία." },
+                    { text: "10 m/s, λόγω της επιτάχυνσης της βαρύτητας.", isCorrect: false, feedback: "Λάθος. Η επιτάχυνση της βαρύτητας είναι 9.8m/s² (περίπου 10m/s²), αλλά η ταχύτητα γίνεται μηδέν." }
+                ],
+                nextSceneId: 2
+            },
+            {
+                id: 2,
+                title: "2. Κυκλική Κίνηση: Το Καραφάκι",
+                text: "Σε ένα παιχνίδι λούνα παρκ, μια καμπίνα κινείται με σταθερή ταχύτητα σε τέλειο κύκλο. Ποια είναι η **κατεύθυνση** της κεντρομόλου δύναμης που συγκρατεί την καμπίνα στην κυκλική τροχιά;",
+                options: [
+                    { text: "Συνεχώς προς τα έξω (φυγόκεντρος).", isCorrect: false, feedback: "Λάθος! Η φυγόκεντρος είναι αδρανειακή 'δύναμη'. Η πραγματική δύναμη (κεντρομόλος) είναι προς το κέντρο." },
+                    { text: "Προς την κατεύθυνση της ταχύτητας.", isCorrect: false, feedback: "Λάθος. Η δύναμη είναι κάθετη στην ταχύτητα." },
+                    { text: "Συνεχώς προς το κέντρο του κύκλου.", isCorrect: true, feedback: "Σωστά! Η κεντρομόλος δύναμη (π.χ. η τάση του καλωδίου) είναι πάντα στραμμένη προς το κέντρο." }
+                ],
+                nextSceneId: 3
+            },
+            {
+                id: 3,
+                title: "3. Ροπή Δύναμης: Άνοιγμα Πόρτας",
+                text: "Προσπαθείτε να ανοίξετε μια πόρτα. Για να δημιουργήσετε τη μέγιστη ροπή (στροφική ικανότητα) με τη μικρότερη δυνατή δύναμη, πού πρέπει να εφαρμόσετε τη δύναμη;",
+                options: [
+                    { text: "Πολύ κοντά στους μεντεσέδες.", isCorrect: false, feedback: "Λάθος. Όσο μικρότερη είναι η απόσταση (μοχλοβραχίονας) από τον άξονα περιστροφής, τόσο μεγαλύτερη δύναμη χρειάζεστε." },
+                    { text: "Στο κέντρο της πόρτας.", isCorrect: false, feedback: "Λάθος. Καλύτερα, αλλά όχι η βέλτιστη θέση." },
+                    { text: "Στο σημείο πιο απομακρυσμένο από τους μεντεσέδες (στην λαβή).", isCorrect: true, feedback: "Σωστά! Η ροπή $\\tau$ είναι ανάλογη της απόστασης $r$ από τον άξονα ($\tau = F \\cdot r$). Μεγάλο $r$ σημαίνει μικρό $F$." }
+                ],
+                nextSceneId: 4
+            },
+            {
+                id: 4,
+                title: "4. Στατικός Ηλεκτρισμός: Το Χτένισμα",
+                text: "Όταν χτενίζετε τα μαλλιά σας με μια πλαστική χτένα, αυτή μπορεί να προσελκύσει μικρά κομμάτια χαρτιού. Ποιο φαινόμενο συμβαίνει μεταξύ της χτένας και των χαρτιών;",
+                options: [
+                    { text: "Ηλεκτρική εκκένωση.", isCorrect: false, feedback: "Λάθος. Εκκένωση θα ήταν η απελευθέρωση του φορτίου, όχι η έλξη." },
+                    { text: "Επαγωγή (λόγω τριβής) και έλξη (λόγω αντίθετων φορτίων ή πόλωσης).", isCorrect: true, feedback: "Σωστά! Η τριβή δίνει φορτίο στη χτένα. Αυτή πολώνει το ουδέτερο χαρτί και το έλκει." },
+                    { text: "Μαγνητική έλξη.", isCorrect: false, feedback: "Λάθος. Τα πλαστικά αντικείμενα δεν μαγνητίζονται έτσι." }
+                ],
+                nextSceneId: 5
+            },
+            {
+                id: 5,
+                title: "5. Δυναμικός Ηλεκτρισμός: Η Αντίσταση",
+                text: "Σε ένα απλό κύκλωμα με μια μπαταρία, διπλασιάζουμε την αντίσταση (R) του κυκλώματος. Τι συμβαίνει με την ένταση του ρεύματος (Ι) που ρέει, σύμφωνα με το Νόμο του Ohm ($V=I\\cdot R$);",
+                options: [
+                    { text: "Το ρεύμα διπλασιάζεται.", isCorrect: false, feedback: "Λάθος. Αντίσταση και ρεύμα είναι αντιστρόφως ανάλογα." },
+                    { text: "Το ρεύμα παραμένει το ίδιο.", isCorrect: false, feedback: "Λάθος. Η αύξηση της αντίστασης πάντα μειώνει το ρεύμα." },
+                    { text: "Το ρεύμα υποδιπλασιάζεται.", isCorrect: true, feedback: "Σωστά! $I = V/R$. Αν το $R$ γίνει $2R$, το $I$ γίνεται $I/2$." }
+                ],
+                nextSceneId: 6
+            },
+            {
+                id: 6,
+                title: "6. Το Κβαντικό Άλμα",
+                text: "Στην Κβαντική Φυσική, τα ηλεκτρόνια γύρω από τον πυρήνα μπορούν να απορροφήσουν ή να εκπέμψουν ενέργεια μόνο σε συγκεκριμένα 'πακέτα' (κβάντα). Τι ονομάζεται αυτή η διαδικασία;",
+                options: [
+                    { text: "Ηλεκτρονική μεταφορά", isCorrect: false, feedback: "Λάθος. Αν και περιλαμβάνει ηλεκτρόνια, δεν είναι ο επιστημονικός όρος." },
+                    { text: "Κβάντωση", isCorrect: true, feedback: "Σωστά! Η ενέργεια είναι κβαντισμένη, δηλαδή λαμβάνει μόνο διακριτές, συγκεκριμένες τιμές." },
+                    { text: "Διαφορική Φόρτιση", isCorrect: false, feedback: "Λάθος. Αυτός ο όρος αφορά την κλασική φόρτιση σωμάτων." }
+                ],
+nextSceneId: 7
+            },
+
+{
+                id: 7,
+                title: "7. Το Αίνιγμα του Φωτός",
+                text: "Ένα κλασικό πείραμα δείχνει ότι το φως, όπως το γνωρίζουμε, μπορεί να συμπεριφέρεται με δύο διαφορετικούς τρόπους. Όταν περνά μέσα από σχισμές, δείχνει παρεμβολή. Όταν όμως χτυπά ένα μέταλλο, βγάζει ηλεκτρόνια (Φωτοηλεκτρικό φαινόμενο). Ποια είναι η φύση του φωτός, σύμφωνα με την Κβαντική Φυσική;",
+                options: [
+                    { text: "Είναι μόνο κύμα. Η σωματιδιακή συμπεριφορά είναι μια ψευδαίσθηση.", isCorrect: false, feedback: "Λάθος! Η Κβαντική Φυσική μάς έδειξε κάτι πιο παράξενο..." },
+                    { text: "Είναι μόνο σωματίδιο (φωτόνιο).", isCorrect: false, feedback: "Λάθος! Αν ήταν μόνο σωματίδιο, δεν θα παρατηρούνταν παρεμβολή." },
+                    { text: "Έχει διττή φύση: συμπεριφέρεται ως κύμα ή ως σωματίδιο, ανάλογα με τον τρόπο που το παρατηρούμε.", isCorrect: true, feedback: "Σωστά! Αυτή είναι η Δυαδικότητα Κύματος-Σωματιδίου." }
+                ],
+nextSceneId: 8
+            },
+            {
+                id: 8,
+                title: "8. Η Ενέργεια σε Πακέτα",
+                text: "Στο μοντέλο του Bohr, τα ηλεκτρόνια γύρω από τον πυρήνα μπορούν να έχουν μόνο συγκεκριμένα επίπεδα ενέργειας. Γιατί η ενέργεια δεν μπορεί να έχει οποιαδήποτε τιμή, αλλά μόνο αυτές τις διακριτές τιμές;",
+                options: [
+                    { text: "Είναι θέμα τύχης. Η Φύση απλά αποφάσισε να το κάνει έτσι.", isCorrect: false, feedback: "Μια ενδιαφέρουσα σκέψη, αλλά η Φυσική έχει πιο αυστηρούς κανόνες." },
+                    { text: "Η ενέργεια είναι κβαντισμένη, δηλαδή έρχεται σε διακριτά 'πακέτα' (κβάντα), λόγω της κυματικής συμπεριφοράς του ηλεκτρονίου.", isCorrect: true, feedback: "Σωστά! Αυτό είναι το θεμέλιο της κβάντωσης. Κάθε 'άλμα' μεταξύ επιπέδων είναι ένα κβάντο ενέργειας." },
+                    { text: "Τα ηλεκτρόνια έχουν πολύ μεγάλη μάζα.", isCorrect: false, feedback: "Η μάζα είναι μικρή και δεν είναι ο λόγος της κβάντωσης." }
+                ],
+                nextSceneId: 9
+            },
+            {
+                id: 9,
+                title: "9. Το Όριο της Γνώσης",
+                text: "Η Αρχή της Αβεβαιότητας του Heisenberg δηλώνει ότι υπάρχει ένα όριο στην ακρίβεια με την οποία μπορούμε να γνωρίζουμε ταυτόχρονα δύο συμπληρωματικά μεγέθη ενός σωματιδίου (π.χ., θέση και ορμή). Ποια είναι η βαθύτερη αιτία αυτής της αβεβαιότητας;",
+                options: [
+                    { text: "Είναι λόγω των ατελειών στα όργανα μέτρησής μας.", isCorrect: false, feedback: "Λάθος. Αν και τα όργανα παίζουν ρόλο, η αβεβαιότητα είναι θεμελιώδης ιδιότητα του Σύμπαντος." },
+                    { text: "Η πράξη της μέτρησης αναπόφευκτα διαταράσσει το σύστημα που μετράμε, επειδή πρέπει να 'ρίξουμε' ένα φωτόνιο πάνω του.", isCorrect: true, feedback: "Σωστά! Η παρατήρηση (μέτρηση) αλλάζει το κβαντικό σύστημα. Δεν μπορούμε να ξέρουμε τα πάντα ταυτόχρονα." },
+                    { text: "Μόνο η θέση είναι σημαντική, η ορμή δεν μετράει.", isCorrect: false, feedback: "Λάθος. Και τα δύο είναι απαραίτητα για την πλήρη περιγραφή του συστήματος." }
+                ],
+                nextSceneId: 10
+            },
+            {
+                id: 10,
+                title: "Τέλος της Αποστολής",
+                text: "Συγχαρητήρια, [PLAYER_NAME]! Ολοκληρώσατε με επιτυχία τη Φυσική Quest! Καλύψατε επιτυχώς θέματα από την Κλασική Μηχανική, τον Ηλεκτρομαγνητισμό, μέχρι και την Κβαντική Φυσική. Κάντε επανεκκίνηση για να δοκιμάσετε ξανά!",
+                options: [], // Τελική σκηνή
+                nextSceneId: null
+            }
+        ];
+
+        // --- Λειτουργίες Παιχνιδιού ---
+
+        function initializeGame() {
+            const inputName = playerNameInput.value.trim();
+            if (inputName) {
+                playerName = inputName;
+            } else {
+                playerName = "Μαθητής/Ομάδα Άγνωστη"; // Default name if no input
+            }
+            
+            // Εμφάνιση ονόματος στο footer
+            nameDisplay.textContent = playerName;
+
+            // Αλλαγή οθόνης
+            startScreen.style.display = 'none';
+            mainQuizScreen.style.display = 'block';
+
+            startGame();
+        }
+        
+        function resetGame() {
+             // Επαναφορά στην αρχική οθόνη εισαγωγής ονόματος
+            startScreen.style.display = 'flex';
+            mainQuizScreen.style.display = 'none';
+            playerNameInput.value = "";
+            playerName = "";
+            nameDisplay.textContent = "...";
+            currentSceneIndex = 0;
+        }
+
+
+        function startGame() {
+            currentSceneIndex = 0;
+            restartButton.classList.add('hidden');
+            nextButton.classList.add('hidden');
+            displayScene(scenes[currentSceneIndex]);
+        }
+
+        function displayScene(scene) {
+            sceneCounter.textContent = scene.id;
+
+            feedbackText.classList.add('hidden');
+            feedbackText.textContent = '';
+            nextButton.classList.add('hidden');
+            optionsContainer.innerHTML = '';
+            
+            // Εμφάνιση κειμένου (αντικατάσταση [PLAYER_NAME] στην τελική σκηνή)
+            let sceneText = scene.text.replace("[PLAYER_NAME]", playerName);
+            questionText.innerHTML = `<h2 class="text-xl font-extrabold mb-3 text-yellow-500">${scene.title}</h2><p>${sceneText}</p>`;
+
+            if (scene.options && scene.options.length > 0) {
+                scene.options.forEach((option, index) => {
+                    const button = document.createElement('button');
+                    button.textContent = option.text;
+                    button.className = 'btn-option w-full py-3 px-4 text-left rounded-lg shadow-xl';
+                    button.onclick = () => handleAnswer(scene, option, button);
+                    optionsContainer.appendChild(button);
+                });
+            } else {
+                 // Τελική σκηνή: εμφάνιση κουμπιού επανεκκίνησης
+                restartButton.classList.remove('hidden');
+            }
+        }
+
+        function handleAnswer(scene, selectedOption, buttonElement) {
+            // Απενεργοποίηση όλων των κουμπιών
+            Array.from(optionsContainer.children).forEach(btn => btn.disabled = true);
+
+            // Εμφάνιση ανατροφοδότησης
+            feedbackText.classList.remove('hidden');
+            feedbackText.textContent = selectedOption.feedback;
+
+            // Οπτική ένδειξη
+            if (selectedOption.isCorrect) {
+                buttonElement.classList.add('correct-answer', 'border-2', 'border-green-400');
+                feedbackText.classList.remove('incorrect-answer');
+                feedbackText.classList.add('correct-answer');
+            } else {
+                buttonElement.classList.add('incorrect-answer', 'border-2', 'border-red-400');
+                feedbackText.classList.remove('correct-answer');
+                feedbackText.classList.add('incorrect-answer');
+                
+                // Επισήμανση της σωστής απάντησης
+                const correctOption = scene.options.find(opt => opt.isCorrect);
+                if (correctOption) {
+                    const correctButton = Array.from(optionsContainer.children).find(btn => btn.textContent === correctOption.text);
+                    if (correctButton) {
+                         correctButton.classList.add('border-2', 'border-green-400', 'bg-green-500/30');
+                    }
+                }
+            }
+            
+            // Εμφάνιση κουμπιού "Συνέχεια"
+            if (scene.nextSceneId) {
+                nextButton.classList.remove('hidden');
+            }
+        }
+
+        function nextScene() {
+            const currentScene = scenes[currentSceneIndex];
+            const nextId = currentScene.nextSceneId;
+            
+            if (nextId === null) {
+                displayScene(scenes[currentSceneIndex]);
+                return;
+            }
+
+            const nextScene = scenes.find(s => s.id === nextId);
+            if (nextScene) {
+                currentSceneIndex = scenes.indexOf(nextScene);
+                displayScene(nextScene);
+            } else {
+                currentSceneIndex = scenes.length - 1; // Fallback to end screen
+                displayScene(scenes[currentSceneIndex]);
+            }
+        }
+
+        // --- Έναρξη: Εμφάνιση της αρχικής οθόνης ---
+        window.onload = resetGame; // Ensures the game starts at the name entry screen
+    </script>
+</body>
+</html>
